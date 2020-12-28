@@ -11,10 +11,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.player.PlayerBedEnterEvent;
 import xyz.tehbrian.nobedexplosions.NoBedExplosions;
-import xyz.tehbrian.nobedexplosions.util.MessageUtils;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 public class BedListener implements Listener {
 
@@ -26,49 +26,13 @@ public class BedListener implements Listener {
 
     @EventHandler
     public void onBedEnter(PlayerBedEnterEvent event) {
-        FileConfiguration config = main.getConfig();
-        if (!config.getBoolean("enabled")) return;
+				Block bed = event.getBed();
+				Player player = event.getPlayer();
 
-        Player player = event.getPlayer();
-        ConfigurationSection worldSettings = config.getConfigurationSection("worlds." + player.getWorld().getName());
-        if (worldSettings == null) return;
+				// Allow sleeping in the nether above the bedrock ceiling
 
-        Mode mode = Mode.valueOf(Objects.requireNonNull(worldSettings.getString("mode")).trim().toUpperCase(Locale.ENGLISH));
-        switch (mode) {
-            case ALLOW:
-                if (event.getBedEnterResult() == PlayerBedEnterEvent.BedEnterResult.NOT_POSSIBLE_HERE) {
-                    event.setUseBed(Event.Result.ALLOW);
-                }
-                break;
-            case DENY:
-                event.setUseBed(Event.Result.DENY);
-
-                String denyMsg = MessageUtils.color(worldSettings.getString("deny_msg"));
-                if (denyMsg != null && !denyMsg.isEmpty()) {
-                    player.sendMessage(denyMsg);
-                }
-                break;
-        }
-    }
-
-    @EventHandler
-    public void onBedExplode(BlockExplodeEvent event) {
-        Block block = event.getBlock();
-        if (!Tag.BEDS.getValues().contains(block.getType())) return;
-
-        FileConfiguration config = main.getConfig();
-        if (!config.getBoolean("enabled")) return;
-
-        ConfigurationSection worldSettings = config.getConfigurationSection("worlds." + block.getWorld().getName());
-        if (worldSettings == null) return;
-
-        if (worldSettings.getBoolean("disable_all_explosions")) {
-            event.setCancelled(true);
-        }
-    }
-
-    private enum Mode {
-        ALLOW,
-        DENY,
-    }
+				if (player.getWorld().getName().endsWith("_nether") && bed.getY() > 127) {
+					event.setUseBed(Event.Result.ALLOW);
+				}
+			}
 }
